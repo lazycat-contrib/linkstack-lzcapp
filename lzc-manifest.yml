@@ -1,0 +1,76 @@
+application:
+  subdomain: linkstack
+  multi_instance: false
+  upstreams:
+    - location: /package-licenses/
+      backend: file:///lzcapp/pkg/content/licenses/
+    - location: /
+      backend: http://linkstack:80/
+
+services:
+  db:
+    image: docker.1ms.run/library/mariadb:10.11
+    environment:
+      - MARIADB_ROOT_PASSWORD={{ stable_secret "linkstack_db_root" | replace "\r" "" | replace "\n" "" }}
+      - MARIADB_DATABASE=linkstack
+      - MARIADB_USER=linkstack
+      - |-
+        MARIADB_PASSWORD={{ stable_secret "linkstack_db_password" | replace "\r" "" | replace "\n" "" }}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mariadb-admin ping -h 127.0.0.1 -uroot -p"$$MARIADB_ROOT_PASSWORD"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    binds:
+      - /lzcapp/var/mysql:/var/lib/mysql
+
+  linkstack:
+    # upstream: linkstackorg/linkstack:v4.8.8
+    image: docker.1ms.run/linkstackorg/linkstack:v4.8.8
+    depends_on:
+      - db
+    environment:
+      # Laravel refuses to boot without an APP_KEY.
+      - |-
+        APP_KEY=base64:{{ stable_secret "linkstack_app_key" | replace "\r" "" | replace "\n" "" }}
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - |-
+        APP_URL=https://{{ .S.AppDomain }}
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=linkstack
+      - DB_USERNAME=linkstack
+      - |-
+        DB_PASSWORD={{ stable_secret "linkstack_db_password" | replace "\r" "" | replace "\n" "" }}
+      - CACHE_DRIVER=file
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=sync
+      - TZ=Asia/Shanghai
+    binds:
+      - /lzcapp/var/linkstack/storage:/var/www/html/storage
+
+usage: |
+  LinkStack 是自托管的多链接主页：一个地址聚合你所有的链接，可以换主题、看点击统计。
+
+  使用方法：
+  1. 首次打开会自动进入安装向导（应用已预置配置，直接点下一步即可）。
+  2. 在向导里设置你的管理员账号和密码——**这一步由你自己填**，包内没有内置口令。
+  3. 装完用该账号登录后台，在"链接"里添加条目，选主题、调颜色。
+  4. 你的主页就是应用地址，把它发给别人即可；后台能看每个链接的点击量。
+
+  数据与安全：
+  - 数据库在 MariaDB（/lzcapp/var/mysql），上传的图标与页面资源在 /lzcapp/var/linkstack/storage，
+    卸载应用会一并删除，请定期备份。
+  - 管理员账号密码由你在安装向导里设置，不存在内置弱口令。
+  - APP_KEY 与数据库密码由平台稳定密钥生成，每个部署不同。
+  - 应用经懒猫入口鉴权访问。
+
+  说明：
+  - 两个容器：LinkStack + MariaDB 10.11，启动顺序由依赖关系保证。
+  - 未配置邮件服务，找回密码等依赖邮件的功能不可用。
+  - 未做真机验证：安装向导、登录后台、添加链接以及重启后持久化均未在设备上实测。

@@ -1,0 +1,18 @@
+package: community.lazycat.app.linkstack
+name: LinkStack
+version: 0.0.0
+description: "Self-hosted link-in-bio page: one profile URL listing all your links, with themes."
+min_os_version: "1.5.0"
+homepage: https://linkstack.org/
+author: LinkStack
+license: AGPL-3.0
+permissions:
+  required:
+    - net.internet
+locales:
+  zh:
+    name: LinkStack
+    description: "自托管的多链接主页：一个地址聚合你的所有链接，可换主题、看点击统计。"
+  en:
+    name: LinkStack
+    description: "Self-hosted link-in-bio page: one profile URL listing all your links, with themes."
