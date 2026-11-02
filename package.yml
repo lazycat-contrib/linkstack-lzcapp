@@ -1,6 +1,6 @@
 package: community.lazycat.app.linkstack
 name: LinkStack
-version: 0.0.0
+version: 4.8.8
 description: "Self-hosted link-in-bio page: one profile URL listing all your links, with themes."
 min_os_version: "1.5.0"
 homepage: https://linkstack.org/
